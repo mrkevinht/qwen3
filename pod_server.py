@@ -9,7 +9,20 @@ from PIL import Image
 from pdf2image import convert_from_bytes
 
 import torch
-from transformers import AutoModelForImageTextToText, AutoProcessor
+from transformers import AutoProcessor
+
+try:  # Prefer the new multimodal auto class when available.
+    from transformers import AutoModelForImageTextToText
+    MODEL_CLS = AutoModelForImageTextToText
+except ImportError:
+    from transformers import AutoModelForCausalLM
+
+    MODEL_CLS = AutoModelForCausalLM
+    print(
+        "Warning: AutoModelForImageTextToText not available; "
+        "falling back to AutoModelForCausalLM. "
+        "Consider upgrading transformers for full Qwen3-VL support."
+    )
 
 # ===== Model config =====
 MODEL_ID = os.getenv("MODEL_ID", "Qwen/Qwen3-VL-30B-A3B-Instruct")
@@ -27,8 +40,7 @@ processor = AutoProcessor.from_pretrained(
     MODEL_PATH,
     trust_remote_code=True,
     local_files_only=_is_local_model,
-)
-model = AutoModelForImageTextToText.from_pretrained(
+model = MODEL_CLS.from_pretrained(
     MODEL_PATH,
     torch_dtype=DTYPE,
     device_map="auto" if DEVICE == "cuda" else None,
