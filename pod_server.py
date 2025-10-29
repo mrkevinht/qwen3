@@ -40,6 +40,7 @@ processor = AutoProcessor.from_pretrained(
     MODEL_PATH,
     trust_remote_code=True,
     local_files_only=_is_local_model,
+)
 model = MODEL_CLS.from_pretrained(
     MODEL_PATH,
     torch_dtype=DTYPE,
