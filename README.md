@@ -33,6 +33,11 @@ Triển khai kiến trúc Pod ↔ Client theo pipeline Mode A:
    - Không file đính kèm → UI gọi `POST /chat`.
    - Có file đính kèm → UI gọi `POST /vision-chat`.
 
+### Client Docker (Streamlit)
+1. Build image: ``docker build -f Dockerfile.client -t qwen3-vl-client .``
+2. Run container (override pod URL as needed): ``docker run --rm -p 8501:8501 -e POD_URL="http://<POD_PUBLIC_IP>:8000" qwen3-vl-client``
+   > Tu? ch?nh port b?ng ``-e STREAMLIT_PORT=`` n?u mu?n d?i c?ng Streamlit.
+
 ## Luồng hoạt động
 
 1. Streamlit lưu `session_id` & lịch sử chat phía client để hiển thị.

@@ -1,0 +1,21 @@
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    STREAMLIT_PORT=8501 \
+    POD_URL="http://<POD_PUBLIC_IP>:8000"
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY client_app.py .
+
+EXPOSE ${STREAMLIT_PORT}
+
+CMD ["sh", "-c", "streamlit run client_app.py --server.address 0.0.0.0 --server.port ${STREAMLIT_PORT}"]
