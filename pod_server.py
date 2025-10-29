@@ -9,7 +9,7 @@ from PIL import Image
 from pdf2image import convert_from_bytes
 
 import torch
-from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
 # ===== Model config =====
 MODEL_ID = os.getenv("MODEL_ID", "Qwen/Qwen3-VL-30B-A3B-Instruct")
@@ -21,7 +21,7 @@ else:
     DTYPE = torch.bfloat16 if dtype_env == "bf16" else torch.float16
 
 processor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
+model = AutoModelForImageTextToText.from_pretrained(
     MODEL_ID,
     torch_dtype=DTYPE,
     device_map="auto" if DEVICE == "cuda" else None,
@@ -61,14 +61,35 @@ def gen_from_messages(
     max_new_tokens: int = 512,
     temperature: float = 0.2,
 ) -> str:
-    """Generate response using Qwen3 chat helper."""
-    response = model.chat(
-        processor=processor,
-        messages=clone_messages(messages),
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
+    """Generate response using Qwen3-VL generation workflow."""
+    encoded = processor.apply_chat_template(
+        clone_messages(messages),
+        tokenize=True,
+        add_generation_prompt=True,
+        return_dict=True,
+        return_tensors="pt",
+    ).to(model.device)
+
+    generate_kwargs = {"max_new_tokens": int(max_new_tokens)}
+    if temperature and float(temperature) > 0:
+        generate_kwargs["temperature"] = float(temperature)
+        generate_kwargs["do_sample"] = True
+    else:
+        generate_kwargs["do_sample"] = False
+
+    with torch.inference_mode():
+        generated_ids = model.generate(**encoded, **generate_kwargs)
+
+    generated_ids_trimmed = [
+        out_ids[len(in_ids) :]
+        for in_ids, out_ids in zip(encoded["input_ids"], generated_ids)
+    ]
+    outputs = processor.batch_decode(
+        generated_ids_trimmed,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=False,
     )
-    return response
+    return outputs[0] if outputs else ""
 
 
 @app.get("/health")
