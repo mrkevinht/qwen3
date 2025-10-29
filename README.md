@@ -6,6 +6,7 @@ Triển khai kiến trúc Pod ↔ Client theo pipeline Mode A:
 
 1. Copy `Dockerfile` và `pod_server.py` vào workspace RunPod.
 2. Tùy chọn đặt biến môi trường `MODEL_ID` trỏ đến checkpoint cục bộ (VD: `/workspace/models/qwen3-vl-30b-a3b`).
+   > If the weights already live on a mounted network volume (for example `/runpod-volume/qwen3VL/site-packages`), also set `MODEL_PATH` to that directory. The pod will load strictly from the local path without reaching Hugging Face.
 3. Build & chạy:
    ```bash
    docker build -t qwen3-vl-pod .

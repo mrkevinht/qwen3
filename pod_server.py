@@ -13,6 +13,7 @@ from transformers import AutoModelForImageTextToText, AutoProcessor
 
 # ===== Model config =====
 MODEL_ID = os.getenv("MODEL_ID", "Qwen/Qwen3-VL-30B-A3B-Instruct")
+MODEL_PATH = os.getenv("MODEL_PATH") or MODEL_ID
 dtype_env = os.getenv("DTYPE", "bf16").lower()
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 if DEVICE == "cpu":
@@ -20,12 +21,19 @@ if DEVICE == "cpu":
 else:
     DTYPE = torch.bfloat16 if dtype_env == "bf16" else torch.float16
 
-processor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
+_is_local_model = os.path.isdir(MODEL_PATH)
+
+processor = AutoProcessor.from_pretrained(
+    MODEL_PATH,
+    trust_remote_code=True,
+    local_files_only=_is_local_model,
+)
 model = AutoModelForImageTextToText.from_pretrained(
-    MODEL_ID,
+    MODEL_PATH,
     torch_dtype=DTYPE,
     device_map="auto" if DEVICE == "cuda" else None,
     trust_remote_code=True,
+    local_files_only=_is_local_model,
 ).eval()
 
 app = FastAPI(title="Qwen3-VL Pod")
